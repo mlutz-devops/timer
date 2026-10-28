@@ -1,5 +1,7 @@
 import type { Phase } from './workoutTimeline';
 
+export const PREPARATION_DURATION_MS = 3000;
+
 export type TimerState = {
   phaseIndex: number;
   remainingMs: number;
@@ -38,7 +40,7 @@ export function reduceTimer(state: TimerState, action: TimerAction, phases: Phas
   if (action.type === 'restart') return initialTimer(phases, action.now);
   if (action.type === 'start') {
     return state.status === 'ready'
-      ? { ...state, status: 'running', deadline: action.now + state.remainingMs }
+      ? { ...state, phaseIndex: -1, status: 'running', remainingMs: PREPARATION_DURATION_MS, deadline: action.now + PREPARATION_DURATION_MS }
       : state;
   }
   if (state.status === 'ready') return state;
@@ -49,6 +51,8 @@ export function reduceTimer(state: TimerState, action: TimerAction, phases: Phas
       ? { ...current, status: 'paused' }
       : { ...current, status: 'running', deadline: action.now + current.remainingMs };
   }
+  // Rep navigation is unavailable during the initial countdown, even when paused.
+  if (current.phaseIndex < 0) return current;
   const phase = phases[current.phaseIndex];
   const targetOrdinal = phase.repOrdinal + (action.direction === -1 && phase.kind === 'rest' ? 0 : action.direction);
   const index = phases.findIndex((item) => item.kind === 'work' && item.repOrdinal === targetOrdinal);

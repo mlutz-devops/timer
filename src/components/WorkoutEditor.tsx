@@ -16,7 +16,8 @@ const numberFields = [
   { key: 'sets', label: 'Sets', min: 1, max: limits.sets },
   { key: 'reps', label: 'Reps per set', min: 1, max: limits.reps },
   { key: 'repDurationSeconds', label: 'Rep time', min: 1, max: limits.seconds },
-  { key: 'restBetweenRepsSeconds', label: 'Rest time', min: 0, max: limits.seconds },
+  { key: 'restBetweenRepsSeconds', label: 'Rest between reps', min: 0, max: limits.seconds },
+  { key: 'restBetweenSetsSeconds', label: 'Rest between sets', min: 0, max: limits.seconds },
 ] as const;
 
 export function WorkoutEditor({ workout, isNew, onSave, onCancel }: Props) {
@@ -59,13 +60,14 @@ export function WorkoutEditor({ workout, isNew, onSave, onCancel }: Props) {
               <div className="number-fields">{numberFields.map((field) => (
                 <Label key={field.key} className="number-field" htmlFor={`${exercise.id}-${field.key}`}><span>{field.label}</span><span className="number-input-wrap"><Input id={`${exercise.id}-${field.key}`} aria-label={`Exercise ${index + 1} ${field.label.toLowerCase()}`} type="number" min={field.min} max={field.max} step={1} required value={Number.isFinite(exercise[field.key]) ? exercise[field.key] : ''} onChange={(event) => updateExercise(exercise.id, { [field.key]: event.target.value === '' ? NaN : Number(event.target.value) })} />{field.key.endsWith('Seconds') && <span>sec</span>}</span></Label>
               ))}</div>
+              <p className="exercise-timing-tip">Timing applies to every rep and set of this exercise. Set rest also applies before the next exercise. Use 0 for no rest.</p>
             </Card>
           ))}
           <Button variant="outline" className="add-exercise-button" disabled={draft.exercises.length >= limits.exercises} onClick={() => setDraft({ ...draft, exercises: [...draft.exercises, newExercise()] })}><Plus />Add exercise</Button>
           {error && <Alert variant="destructive" className="error-message"><AlertDescription>{error}</AlertDescription></Alert>}
           <div className="editor-bottom-actions"><Button variant="outline" onClick={onCancel}>Cancel</Button><Button type="submit"><Check />Save workout</Button></div>
         </div>
-        <Card className="editor-summary" role="complementary"><span className="eyebrow">WORKOUT SUMMARY</span><h2>{draft.name.trim() || 'Untitled workout'}</h2><span className="summary-duration"><Clock3 size={19} />{Number.isFinite(duration) ? formatDuration(duration) : '—'}</span><Separator className="summary-divider" /><ol>{draft.exercises.map((exercise, index) => <li key={exercise.id}><span className="summary-number">{index + 1}</span><div><strong>{exercise.name.trim() || 'New exercise'}</strong><span>{Number.isFinite(exercise.sets) ? exercise.sets : '—'} sets · {Number.isFinite(exercise.reps) ? exercise.reps : '—'} reps</span></div></li>)}</ol><p className="summary-tip">Rest follows each rep, including between sets and exercises. No rest after the final rep.</p></Card>
+        <Card className="editor-summary" role="complementary"><span className="eyebrow">WORKOUT SUMMARY</span><h2>{draft.name.trim() || 'Untitled workout'}</h2><span className="summary-duration"><Clock3 size={19} />{Number.isFinite(duration) ? formatDuration(duration) : '—'}</span><Separator className="summary-divider" /><ol>{draft.exercises.map((exercise, index) => <li key={exercise.id}><span className="summary-number">{index + 1}</span><div><strong>{exercise.name.trim() || 'New exercise'}</strong><span>{Number.isFinite(exercise.sets) ? exercise.sets : '—'} sets · {Number.isFinite(exercise.reps) ? exercise.reps : '—'} reps</span></div></li>)}</ol><p className="summary-tip">A 3-second countdown gets you ready before the first rep (not included above). Set rest replaces rep rest between sets and exercises. No rest after the final rep.</p></Card>
       </form>
     </>
   );

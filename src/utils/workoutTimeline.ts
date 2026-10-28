@@ -7,6 +7,7 @@ export type Phase = {
   rep: number;
   repOrdinal: number;
   durationMs: number;
+  restType?: 'rep' | 'set' | 'exercise';
 };
 
 export function buildTimeline(workout: Workout): Phase[] {
@@ -18,8 +19,10 @@ export function buildTimeline(workout: Workout): Phase[] {
       for (let rep = 1; rep <= exercise.reps; rep++) {
         const position = { exerciseIndex, set, rep, repOrdinal };
         phases.push({ ...position, kind: 'work', durationMs: exercise.repDurationSeconds * 1000 });
-        if (repOrdinal < totalReps - 1 && exercise.restBetweenRepsSeconds > 0) {
-          phases.push({ ...position, kind: 'rest', durationMs: exercise.restBetweenRepsSeconds * 1000 });
+        const restType = rep < exercise.reps ? 'rep' : set < exercise.sets ? 'set' : 'exercise';
+        const restSeconds = restType === 'rep' ? exercise.restBetweenRepsSeconds : exercise.restBetweenSetsSeconds;
+        if (repOrdinal < totalReps - 1 && restSeconds > 0) {
+          phases.push({ ...position, kind: 'rest', restType, durationMs: restSeconds * 1000 });
         }
         repOrdinal++;
       }
@@ -31,8 +34,9 @@ export function buildTimeline(workout: Workout): Phase[] {
 export function workoutDuration(workout: Workout): number {
   return workout.exercises.reduce((sum, exercise, index) => {
     const reps = exercise.sets * exercise.reps;
-    const rests = reps - (index === workout.exercises.length - 1 ? 1 : 0);
-    return sum + reps * exercise.repDurationSeconds + rests * exercise.restBetweenRepsSeconds;
+    const repRests = exercise.sets * (exercise.reps - 1);
+    const setRests = exercise.sets - 1 + (index < workout.exercises.length - 1 ? 1 : 0);
+    return sum + reps * exercise.repDurationSeconds + repRests * exercise.restBetweenRepsSeconds + setRests * exercise.restBetweenSetsSeconds;
   }, 0);
 }
 

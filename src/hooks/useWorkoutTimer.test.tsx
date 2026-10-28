@@ -23,6 +23,10 @@ describe('workout timer hook', () => {
     expect(result.current.status).toBe('ready');
     act(() => result.current.start());
     expect(result.current.status).toBe('running');
+    expect(result.current.preparing).toBe(true);
+    expect(result.current.canNext).toBe(false);
+    act(() => vi.advanceTimersByTime(3000));
+    expect(result.current.preparing).toBe(false);
     expect(result.current.canNext).toBe(true);
     act(() => vi.advanceTimersByTime(1000));
     expect(result.current.remainingMs).toBe(9000);
@@ -34,7 +38,7 @@ describe('workout timer hook', () => {
     const { result, unmount } = renderHook(() => useWorkoutTimer(workout));
     expect(result.current.remainingMs).toBe(10000);
     act(() => result.current.start());
-    act(() => vi.advanceTimersByTime(2000));
+    act(() => vi.advanceTimersByTime(5000));
     expect(result.current.remainingMs).toBe(8000);
     act(() => result.current.toggle());
     act(() => vi.advanceTimersByTime(5000));
@@ -55,7 +59,7 @@ describe('workout timer hook', () => {
     vi.setSystemTime(0);
     const { result } = renderHook(() => useWorkoutTimer(workout));
     act(() => result.current.start());
-    vi.setSystemTime(37000);
+    vi.setSystemTime(40000);
     act(() => document.dispatchEvent(new Event('visibilitychange')));
     expect(result.current.phase).toMatchObject({ set: 2, rep: 1, kind: 'work' });
     expect(result.current.remainingMs).toBe(3000);

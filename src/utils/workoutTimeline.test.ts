@@ -12,7 +12,7 @@ describe('workout timeline', () => {
   });
 
   it('omits zero-length rests and the final rest', () => {
-    const noRest = { ...workout, exercises: workout.exercises.map((exercise) => ({ ...exercise, restBetweenRepsSeconds: 0 })) };
+    const noRest = { ...workout, exercises: workout.exercises.map((exercise) => ({ ...exercise, restBetweenRepsSeconds: 0, restBetweenSetsSeconds: 0 })) };
     expect(buildTimeline(noRest)).toHaveLength(5);
     expect(buildTimeline(noRest).every((phase) => phase.kind === 'work')).toBe(true);
     const single = { ...workout, exercises: [{ ...workout.exercises[0], sets: 1, reps: 1 }] };
@@ -22,6 +22,22 @@ describe('workout timeline', () => {
   it('reports the same duration as the generated timeline', () => {
     expect(workoutDuration(workout)).toBe(80);
     expect(buildTimeline(workout).reduce((sum, phase) => sum + phase.durationMs, 0)).toBe(80000);
+  });
+
+  it('uses distinct rep and set rests, with set rest before the next exercise', () => {
+    const custom = { ...workout, exercises: workout.exercises.map((exercise) => ({ ...exercise, restBetweenSetsSeconds: 30 })) };
+    const phases = buildTimeline(custom);
+    expect(phases.filter((phase) => phase.kind === 'rest').map(({ restType, durationMs }) => [restType, durationMs])).toEqual([
+      ['rep', 5000], ['set', 30000], ['rep', 5000], ['exercise', 30000],
+    ]);
+    expect(workoutDuration(custom)).toBe(130);
+    expect(phases.reduce((sum, phase) => sum + phase.durationMs, 0)).toBe(130000);
+  });
+
+  it('supports single-rep sets and skips zero set rest without adding rep rest', () => {
+    const custom = { ...workout, exercises: [{ ...workout.exercises[0], sets: 3, reps: 1, restBetweenSetsSeconds: 0 }] };
+    expect(buildTimeline(custom).map((phase) => phase.kind)).toEqual(['work', 'work', 'work']);
+    expect(workoutDuration(custom)).toBe(30);
   });
 
   it('formats countdowns and total durations', () => {

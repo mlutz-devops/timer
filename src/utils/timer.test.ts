@@ -6,17 +6,31 @@ import { advanceClock, initialTimer, reduceTimer } from './timer';
 const phases = buildTimeline(workout);
 
 function runningTimer(now = 0) {
-  return reduceTimer(initialTimer(phases, now), { type: 'start', now }, phases);
+  const preparing = reduceTimer(initialTimer(phases, now - 3000), { type: 'start', now: now - 3000 }, phases);
+  return advanceClock(preparing, phases, now);
 }
 
 describe('timer engine', () => {
-  it('waits for Start and measures the first rep from the moment it is pressed', () => {
+  it('waits for Start, counts down for 3 seconds, then starts the full first rep', () => {
     const ready = initialTimer(phases, 1000);
     expect(ready).toMatchObject({ status: 'ready', remainingMs: 10000, phaseIndex: 0 });
     expect(advanceClock(ready, phases, 100000)).toEqual(ready);
     const started = reduceTimer(ready, { type: 'start', now: 100000 }, phases);
-    expect(started).toMatchObject({ status: 'running', remainingMs: 10000, deadline: 110000 });
-    expect(advanceClock(started, phases, 101000).remainingMs).toBe(9000);
+    expect(started).toMatchObject({ status: 'running', phaseIndex: -1, remainingMs: 3000, deadline: 103000 });
+    expect(advanceClock(started, phases, 101000).remainingMs).toBe(2000);
+    expect(advanceClock(started, phases, 103000)).toMatchObject({ phaseIndex: 0, remainingMs: 10000 });
+    expect(advanceClock(started, phases, 104000).remainingMs).toBe(9000);
+  });
+
+  it('pauses preparation, blocks navigation, and resumes without repeating the countdown', () => {
+    const preparing = reduceTimer(initialTimer(phases, 0), { type: 'start', now: 0 }, phases);
+    const paused = reduceTimer(preparing, { type: 'toggle', now: 1000 }, phases);
+    expect(paused).toMatchObject({ phaseIndex: -1, remainingMs: 2000, status: 'paused' });
+    expect(reduceTimer(paused, { type: 'navigate', direction: 1, now: 10000 }, phases)).toEqual(paused);
+    expect(reduceTimer(paused, { type: 'navigate', direction: -1, now: 10000 }, phases)).toEqual(paused);
+    const resumed = reduceTimer(paused, { type: 'toggle', now: 10000 }, phases);
+    expect(advanceClock(resumed, phases, 12000)).toMatchObject({ phaseIndex: 0, remainingMs: 10000 });
+    expect(advanceClock(resumed, phases, 25000)).toMatchObject({ phaseIndex: 1, remainingMs: 2000 });
   });
 
   it('cannot accidentally begin through ticks, pause toggles or rep navigation', () => {

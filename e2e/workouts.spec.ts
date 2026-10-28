@@ -7,7 +7,8 @@ async function createWorkout(page: Page, repSeconds = '10') {
   await page.getByLabel('Exercise 1 sets', { exact: true }).fill('2');
   await page.getByLabel('Exercise 1 reps per set', { exact: true }).fill('2');
   await page.getByLabel('Exercise 1 rep time', { exact: true }).fill(repSeconds);
-  await page.getByLabel('Exercise 1 rest time', { exact: true }).fill('1');
+  await page.getByLabel('Exercise 1 rest between reps', { exact: true }).fill('1');
+  await page.getByLabel('Exercise 1 rest between sets', { exact: true }).fill('3');
   await page.getByRole('button', { name: 'Save workout', exact: true }).click();
 }
 
@@ -26,6 +27,7 @@ test('create, persist, edit, run, pause, navigate, exit and delete a workout', a
   await expect(page.getByRole('timer')).toHaveText('00:10');
   await expect(page.getByRole('button', { name: 'Previous rep', exact: true })).toBeDisabled();
   await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await expect(page.getByRole('timer')).toHaveAttribute('aria-label', 'Rep time remaining');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   const pausedTime = await page.getByRole('timer').textContent();
   await page.waitForTimeout(1100);
@@ -57,13 +59,28 @@ test('automatically transitions through rest, sets, and completion', async ({ pa
   await createWorkout(page, '2');
   await page.getByRole('button', { name: 'Open Quick flow', exact: true }).click();
   await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await expect(page.getByRole('timer')).toHaveAttribute('aria-label', 'Preparation time remaining');
+  await expect(page.getByRole('timer')).toHaveText('3');
+  await page.clock.runFor(1000);
+  await expect(page.getByRole('timer')).toHaveText('2');
+  await page.clock.runFor(1000);
+  await expect(page.getByRole('timer')).toHaveText('1');
+  await page.clock.runFor(1000);
+  await expect(page.getByRole('timer')).toHaveText('00:02');
   await page.clock.runFor(2000);
   await expect(page.getByRole('timer')).toHaveAttribute('aria-label', 'Rest time remaining');
-  await page.clock.runFor(4000);
+  await page.clock.runFor(1000);
+  await expect(page.getByRole('status')).toHaveText('Last rep of this set');
+  await page.clock.runFor(2000);
+  await expect(page.locator('.timer-phase-label')).toHaveText('SET REST');
+  await expect(page.getByRole('timer')).toHaveText('00:03');
+  await page.clock.runFor(3000);
   await expect(page.getByRole('timer')).toHaveAttribute('aria-label', 'Rep time remaining');
   await expect(page.getByRole('group', { name: 'Set 2 of 2', exact: true })).toBeVisible();
   await expect(page.getByRole('group', { name: 'Rep 1 of 2', exact: true })).toBeVisible();
-  await page.clock.runFor(5000);
+  await page.clock.runFor(3000);
+  await expect(page.getByRole('status')).toHaveText('Final rep of the workout');
+  await page.clock.runFor(2000);
   await expect(page.getByRole('heading', { name: 'Workout complete', exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Restart workout', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Start', exact: true })).toBeVisible();
@@ -130,7 +147,7 @@ test('confirmation traps keyboard focus and Escape resumes a running workout', a
   await page.clock.runFor(1);
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Exit workout', exact: true })).toBeFocused();
-  await page.clock.runFor(1000);
+  await page.clock.runFor(4000);
   await expect(page.getByRole('timer')).toHaveText('00:19');
 });
 
@@ -153,6 +170,15 @@ test('opening a workout waits for Start and canceling exit does not start it', a
   await expect(page.getByRole('timer')).toHaveText('00:20');
   await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect(page.getByRole('button', { name: 'Pause', exact: true })).toBeVisible();
+  await page.clock.runFor(2000);
+  await expect(page.getByRole('timer')).toHaveText('1');
+  await expect(page.getByRole('button', { name: 'Next rep', exact: true })).toBeDisabled();
+  await page.getByRole('button', { name: 'Pause', exact: true }).click();
+  await page.clock.runFor(30000);
+  await expect(page.getByRole('timer')).toHaveText('1');
+  await page.getByRole('button', { name: 'Resume', exact: true }).click();
+  await page.clock.runFor(1000);
+  await expect(page.getByRole('timer')).toHaveText('00:20');
   await page.clock.runFor(2000);
   await expect(page.getByRole('timer')).toHaveText('00:18');
   await page.getByRole('button', { name: 'Pause', exact: true }).click();

@@ -43,9 +43,11 @@ As in the example workflow, every push updates `latest`, including pushes to oth
 
 ## Behavior
 
-- Selecting a workout opens its first rep in a ready state. Press **Start** to begin the countdown; that same button then becomes **Pause / Resume** for the rest of the session. Rep navigation is disabled until starting. **Restart workout** opens a fresh ready state after completion.
-- Each exercise uses one rep duration and one rest duration for all its reps and sets.
-- Rest runs between every rep, including between sets and exercises, using the preceding exercise’s setting. There is no rest after the workout’s final rep.
+- Selecting a workout opens its first rep in a ready state. Press **Start** for a **3–2–1 Get ready** countdown before the full first rep begins. The button then becomes **Pause / Resume**, including during preparation. Rep navigation is disabled until preparation ends. **Restart workout** opens a fresh ready state after completion, with a new countdown on Start.
+- Each exercise has independently configurable **rep time**, **rest between reps**, and **rest between sets** (in seconds). Timing applies to every rep/set of that exercise. Either rest can be zero.
+- Set rest replaces rep rest at set boundaries and before the next exercise, using the preceding exercise’s setting; the two rests are not added together. There is no rest after the workout’s final rep. Planned durations include all rests but exclude the initial 3-second countdown.
+- The runner highlights the last rep of a set, the **last rep of an exercise**, and the **final rep of the workout**. Rest phases distinguish rep, set, and exercise rest, with a preview of the upcoming rep/exercise.
+- Existing saved workouts retain their original timings: their previous rest duration becomes both rep rest and set rest until edited.
 - Next skips to the following rep. Previous returns to the preceding rep; during rest it restarts the rep just completed. Navigation resets the rep’s duration and preserves pause state.
 - Absolute deadlines keep the clock from drifting when timer callbacks are delayed. The app catches up when a background tab becomes visible again; it cannot guarantee background execution while a browser or device is suspended.
 - Exiting pauses the timer while asking for confirmation. Canceling resumes it only if it was running beforehand.

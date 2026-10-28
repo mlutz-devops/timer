@@ -30,6 +30,14 @@ describe('browser persistence', () => {
     expect(loadWorkouts().error).not.toBeNull();
   });
 
+  it('loads legacy workouts with the original rest timing without rewriting storage', () => {
+    const legacy = { ...workout, exercises: workout.exercises.map(({ restBetweenSetsSeconds: _, ...exercise }) => exercise) };
+    const saved = JSON.stringify({ version: 1, workouts: [legacy] });
+    localStorage.setItem(STORAGE_KEY, saved);
+    expect(loadWorkouts()).toEqual({ workouts: [workout], error: null });
+    expect(localStorage.getItem(STORAGE_KEY)).toBe(saved);
+  });
+
   it('reports storage failures without throwing', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('Storage full'); });
     expect(saveWorkouts([workout])).toMatch(/will not survive a refresh/);
@@ -38,7 +46,7 @@ describe('browser persistence', () => {
   });
 
   it('rejects zero reps, fractional sets, missing names and negative rest', () => {
-    for (const patch of [{ reps: 0 }, { sets: 1.5 }, { name: ' ' }, { restBetweenRepsSeconds: -1 }, { repDurationSeconds: 0 }]) {
+    for (const patch of [{ reps: 0 }, { sets: 1.5 }, { name: ' ' }, { restBetweenRepsSeconds: -1 }, { restBetweenSetsSeconds: -1 }, { restBetweenSetsSeconds: 1.5 }, { restBetweenSetsSeconds: 3601 }, { repDurationSeconds: 0 }]) {
       expect(isWorkout({ ...workout, exercises: [{ ...workout.exercises[0], ...patch }] })).toBe(false);
     }
   });

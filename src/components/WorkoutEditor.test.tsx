@@ -29,4 +29,17 @@ describe('workout editor', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Give your workout');
     expect(onSave).not.toHaveBeenCalled();
   });
+
+  it('saves independent rep, rep-rest and set-rest timings', () => {
+    const onSave = vi.fn();
+    render(<WorkoutEditor workout={workout} isNew={false} onSave={onSave} onCancel={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Exercise 1 rep time'), { target: { value: '4' } });
+    fireEvent.change(screen.getByLabelText('Exercise 1 rest between reps'), { target: { value: '0' } });
+    fireEvent.change(screen.getByLabelText('Exercise 1 rest between sets'), { target: { value: '45' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Save workout' }));
+    expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ exercises: [
+      expect.objectContaining({ repDurationSeconds: 4, restBetweenRepsSeconds: 0, restBetweenSetsSeconds: 45 }),
+      workout.exercises[1],
+    ] }));
+  });
 });

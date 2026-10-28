@@ -5,6 +5,7 @@ export type Exercise = {
   reps: number;
   repDurationSeconds: number;
   restBetweenRepsSeconds: number;
+  restBetweenSetsSeconds: number;
 };
 
 export type Workout = {
@@ -18,7 +19,7 @@ export const limits = { sets: 20, reps: 100, seconds: 3600, exercises: 30 };
 export function newExercise(): Exercise {
   return {
     id: crypto.randomUUID(), name: '', sets: 3, reps: 8,
-    repDurationSeconds: 30, restBetweenRepsSeconds: 15,
+    repDurationSeconds: 30, restBetweenRepsSeconds: 15, restBetweenSetsSeconds: 60,
   };
 }
 
@@ -42,6 +43,7 @@ export function isWorkout(value: unknown): value is Workout {
       typeof exercise.name === 'string' && exercise.name.trim().length > 0 &&
       integer(exercise.sets, 1, limits.sets) && integer(exercise.reps, 1, limits.reps) &&
       integer(exercise.repDurationSeconds, 1, limits.seconds) &&
-      integer(exercise.restBetweenRepsSeconds, 0, limits.seconds),
+      integer(exercise.restBetweenRepsSeconds, 0, limits.seconds) &&
+      integer(exercise.restBetweenSetsSeconds, 0, limits.seconds),
     ) && new Set(workout.exercises.map((exercise) => exercise.id)).size === workout.exercises.length;
 }

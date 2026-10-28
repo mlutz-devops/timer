@@ -24,12 +24,13 @@ export function useWorkoutTimer(workout: Workout) {
     };
   }, [state.status]);
 
-  const phase = phases[state.phaseIndex];
+  const preparing = state.phaseIndex < 0;
+  const phase = phases[Math.max(0, state.phaseIndex)];
   const totalReps = workout.exercises.reduce((sum, exercise) => sum + exercise.sets * exercise.reps, 0);
   return {
-    ...state, phases, phase, totalReps,
-    canPrevious: Boolean(state.status !== 'ready' && phase && (phase.repOrdinal > 0 || phase.kind === 'rest')),
-    canNext: Boolean(state.status !== 'ready' && phase && phase.repOrdinal < totalReps - 1),
+    ...state, phases, phase, totalReps, preparing,
+    canPrevious: Boolean(state.status !== 'ready' && !preparing && phase && (phase.repOrdinal > 0 || phase.kind === 'rest')),
+    canNext: Boolean(state.status !== 'ready' && !preparing && phase && phase.repOrdinal < totalReps - 1),
     start: () => dispatch({ type: 'start', now: Date.now() }),
     toggle: () => dispatch({ type: 'toggle', now: Date.now() }),
     next: () => dispatch({ type: 'navigate', direction: 1, now: Date.now() }),

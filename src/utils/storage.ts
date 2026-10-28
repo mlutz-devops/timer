@@ -6,20 +6,29 @@ const starterWorkouts: Workout[] = [
   {
     id: 'starter-full-body', name: 'Full body workout',
     exercises: [
-      { id: 'starter-squats', name: 'Squats', sets: 3, reps: 6, repDurationSeconds: 20, restBetweenRepsSeconds: 10 },
-      { id: 'starter-pushups', name: 'Push-ups', sets: 3, reps: 5, repDurationSeconds: 20, restBetweenRepsSeconds: 10 },
-      { id: 'starter-plank', name: 'Plank', sets: 2, reps: 2, repDurationSeconds: 30, restBetweenRepsSeconds: 15 },
+      { id: 'starter-squats', name: 'Squats', sets: 3, reps: 6, repDurationSeconds: 20, restBetweenRepsSeconds: 10, restBetweenSetsSeconds: 10 },
+      { id: 'starter-pushups', name: 'Push-ups', sets: 3, reps: 5, repDurationSeconds: 20, restBetweenRepsSeconds: 10, restBetweenSetsSeconds: 10 },
+      { id: 'starter-plank', name: 'Plank', sets: 2, reps: 2, repDurationSeconds: 30, restBetweenRepsSeconds: 15, restBetweenSetsSeconds: 15 },
     ],
   },
   {
     id: 'starter-reset', name: 'Stretching and breathing',
     exercises: [
-      { id: 'starter-stretch', name: 'Standing stretch', sets: 1, reps: 3, repDurationSeconds: 30, restBetweenRepsSeconds: 5 },
-      { id: 'starter-lunge', name: 'Low lunge', sets: 2, reps: 2, repDurationSeconds: 30, restBetweenRepsSeconds: 10 },
-      { id: 'starter-breathe', name: 'Deep breathing', sets: 1, reps: 3, repDurationSeconds: 20, restBetweenRepsSeconds: 5 },
+      { id: 'starter-stretch', name: 'Standing stretch', sets: 1, reps: 3, repDurationSeconds: 30, restBetweenRepsSeconds: 5, restBetweenSetsSeconds: 5 },
+      { id: 'starter-lunge', name: 'Low lunge', sets: 2, reps: 2, repDurationSeconds: 30, restBetweenRepsSeconds: 10, restBetweenSetsSeconds: 10 },
+      { id: 'starter-breathe', name: 'Deep breathing', sets: 1, reps: 3, repDurationSeconds: 20, restBetweenRepsSeconds: 5, restBetweenSetsSeconds: 5 },
     ],
   },
 ];
+
+// Older definitions used rep rest at every boundary. Preserve those timings.
+function migrateWorkout(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || !('exercises' in value) || !Array.isArray(value.exercises)) return value;
+  return { ...value, exercises: value.exercises.map((exercise: unknown) => {
+    if (!exercise || typeof exercise !== 'object' || 'restBetweenSetsSeconds' in exercise) return exercise;
+    return { ...exercise, restBetweenSetsSeconds: 'restBetweenRepsSeconds' in exercise ? exercise.restBetweenRepsSeconds : undefined };
+  }) };
+}
 
 export function loadWorkouts(): { workouts: Workout[]; error: string | null } {
   try {
@@ -27,11 +36,14 @@ export function loadWorkouts(): { workouts: Workout[]; error: string | null } {
     if (saved === null) return { workouts: structuredClone(starterWorkouts), error: null };
     const data: unknown = JSON.parse(saved);
     if (!data || typeof data !== 'object' || !('version' in data) || data.version !== 1 ||
-        !('workouts' in data) || !Array.isArray(data.workouts) || !data.workouts.every(isWorkout) ||
-        new Set(data.workouts.map((workout: Workout) => workout.id)).size !== data.workouts.length) {
+        !('workouts' in data) || !Array.isArray(data.workouts)) {
       throw new Error('Invalid saved workouts');
     }
-    return { workouts: data.workouts, error: null };
+    const workouts = data.workouts.map(migrateWorkout);
+    if (!workouts.every(isWorkout) || new Set(workouts.map((workout) => workout.id)).size !== workouts.length) {
+      throw new Error('Invalid saved workouts');
+    }
+    return { workouts, error: null };
   } catch {
     return { workouts: [], error: 'Your saved workouts could not be loaded. You can still create workouts; saving will replace the unreadable data.' };
   }
